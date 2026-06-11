@@ -43,3 +43,7 @@ logging:
 jwt:
   secret: OyF0epYib3QdHHfUc/PG6wjnkGuWZVVnDWcmxbL5tccsJ/xglg6fMWpr222kTWsc
   expiration: 86400000  # 24 hours in milliseconds
+
+library:
+  fines:
+    daily-rate: 1.00

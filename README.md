@@ -27,6 +27,11 @@ This Library Management System is a comprehensive Spring Boot application design
   - Overdue book management
   - Borrowing history for users
 
+- **Fine Management**:
+  - Automatic daily fine calculation for overdue, unreturned books
+  - Fine records linked to users, books, and borrowing records
+  - User fine history and librarian-wide fine lookup
+
 - **Reporting**:
   - Overdue books reports in text and PDF formats
   - Book availability tracking
@@ -201,6 +206,10 @@ The application provides a RESTful API with the following main endpoints:
 - `GET /borrowings/overdue-report`: Generate text report of overdue books (LIBRARIAN role)
 - `GET /borrowings/overdue-pdf-report`: Generate PDF report of overdue books (LIBRARIAN role)
 
+### Fine Operations
+- `GET /fines/my`: Get authenticated user's fines
+- `GET /fines`: Get all fines (LIBRARIAN role)
+
 For a complete API reference, access the Swagger documentation at: http://localhost:8080/api/v1/swagger-ui/index.html
 
 ## Additional Information
@@ -224,6 +233,18 @@ The token is obtained by logging in via the `/auth/login` endpoint.
 
 The application includes a data initializer that populates the database with sample books, users, and borrowings on first startup.
 
+### Automated Fine Calculation
+
+The application runs a scheduled task every day at midnight (`Asia/Kuala_Lumpur`) to calculate fines for overdue, unreturned books. The default fine rate is configured in `src/main/resources/application.yml`:
+
+```yaml
+library:
+  fines:
+    daily-rate: 1.00
+```
+
+Fine records are stored once per borrowing record and updated on later runs, so the scheduled task does not create duplicate fines for the same borrowing.
+
 ### Postman Collection
 
 Click to go to [Online Postman Collection Link](https://www.postman.com/flight-geoscientist-10994860/library-management-system/collection/20492318-ec6da3a3-fb40-4818-850e-d575b8a63d32/?action=share&creator=20492318)
@@ -237,7 +258,6 @@ A Postman collection is included in the repository (`library_management_system_p
   - Overdue books
   - Book availability alerts
   - Account registration
-- Implement a fine calculation system for overdue books
 - Implement book recommendations based on borrowing history
 - Add comprehensive monitoring
 - Implement caching for frequently accessed data
