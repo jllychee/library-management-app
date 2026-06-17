@@ -1,13 +1,17 @@
 package com.ilhanozkan.libraryManagementSystem.service.impl;
 
+import com.ilhanozkan.libraryManagementSystem.common.apiResponse.ApiResponseModel;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.LoginRequestDTO;
+import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RefreshTokenRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RegisterRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.response.auth.LoginResponseDTO;
+import com.ilhanozkan.libraryManagementSystem.model.entity.RefreshToken;
 import com.ilhanozkan.libraryManagementSystem.model.entity.User;
 import com.ilhanozkan.libraryManagementSystem.model.enums.UserRole;
 import com.ilhanozkan.libraryManagementSystem.repository.UserRepository;
 import com.ilhanozkan.libraryManagementSystem.security.JwtService;
 import com.ilhanozkan.libraryManagementSystem.service.AuthService;
+import com.ilhanozkan.libraryManagementSystem.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
@@ -28,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
   private final UserRepository userRepository;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
+  private final RefreshTokenService refreshTokenService;
 
   @Override
   @Transactional
@@ -81,6 +86,8 @@ public class AuthServiceImpl implements AuthService {
 
       UserDetails userDetails = (UserDetails) authentication.getPrincipal();
       String token = jwtService.generateToken(userDetails.getUsername());
+      User user = userRepository.findByUsername(userDetails.getUsername());
+      RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
       log.info("User '{}' authenticated successfully, token generated", userDetails.getUsername());
 
       String role = userDetails.getAuthorities().stream()
@@ -105,6 +112,8 @@ public class AuthServiceImpl implements AuthService {
 
       LoginResponseDTO loginResponseDTO = LoginResponseDTO.builder()
           .token(token)
+          .accessToken(token)
+          .refreshToken(refreshToken.getToken())
           .username(userDetails.getUsername())
           .role(userRole)
           .build();
@@ -114,5 +123,28 @@ public class AuthServiceImpl implements AuthService {
       log.error("Authentication failed for username: {}", loginRequestDTO.getUsername(), e);
       return ResponseEntity.status(401).body("Invalid username or password");
     }
+  }
+
+  @Override
+  public ResponseEntity<?> refreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO) {
+    RefreshToken refreshToken = refreshTokenService.validateRefreshToken(refreshTokenRequestDTO.getRefreshToken());
+    User user = refreshToken.getUser();
+    String accessToken = jwtService.generateToken(user.getUsername());
+
+    LoginResponseDTO loginResponseDTO = LoginResponseDTO.builder()
+        .token(accessToken)
+        .accessToken(accessToken)
+        .refreshToken(refreshToken.getToken())
+        .username(user.getUsername())
+        .role(user.getRole())
+        .build();
+
+    return ResponseEntity.ok(loginResponseDTO);
+  }
+
+  @Override
+  public ResponseEntity<?> logout(RefreshTokenRequestDTO refreshTokenRequestDTO) {
+    refreshTokenService.revokeRefreshToken(refreshTokenRequestDTO.getRefreshToken());
+    return ResponseEntity.ok(ApiResponseModel.success("Logged out successfully", null));
   }
 }

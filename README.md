@@ -162,7 +162,9 @@ The application provides a RESTful API with the following main endpoints:
 
 ### Authentication
 - `POST /auth/register`: Register a new user
-- `POST /auth/login`: Authenticate and get JWT token
+- `POST /auth/login`: Authenticate and get JWT access and refresh tokens
+- `POST /auth/refresh-token`: Get a new JWT access token with a valid refresh token
+- `POST /auth/logout`: Revoke a refresh token
 
 ### Book Management
 - `GET /books`: Get all books with pagination
@@ -218,7 +220,16 @@ All protected endpoints require a JWT token passed in the Authorization header:
 Authorization: Bearer <token>
 ```
 
-The token is obtained by logging in via the `/auth/login` endpoint.
+The access token is obtained by logging in via the `/auth/login` endpoint. The login response includes `token`, `accessToken`, `refreshToken`, `username`, and `role`; `token` is kept as an alias of `accessToken` for compatibility.
+
+When an access token expires, call `/auth/refresh-token` with the refresh token:
+```json
+{
+  "refreshToken": "refresh-token-value"
+}
+```
+
+The refresh endpoint returns a new access token and the same refresh token. To log out, call `/auth/logout` with the same request body. A revoked refresh token cannot be used again. Refresh tokens are stored server-side and are not valid as `Authorization: Bearer` tokens for protected APIs.
 
 ### Data Initialization
 
@@ -243,7 +254,6 @@ A Postman collection is included in the repository (`library_management_system_p
 - Implement caching for frequently accessed data
 - Add support for digital books and e-lending
 - CSRF protection for all forms
-- Refresh token mechanism for JWT
 
 ## License
 

@@ -2,10 +2,12 @@ package com.ilhanozkan.libraryManagementSystem.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.LoginRequestDTO;
+import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RefreshTokenRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RegisterRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.entity.User;
 import com.ilhanozkan.libraryManagementSystem.model.enums.UserRole;
 import com.ilhanozkan.libraryManagementSystem.model.enums.UserStatus;
+import com.ilhanozkan.libraryManagementSystem.repository.RefreshTokenRepository;
 import com.ilhanozkan.libraryManagementSystem.repository.UserRepository;
 import com.ilhanozkan.libraryManagementSystem.repository.BorrowingRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,9 +48,13 @@ public class AuthControllerIntegrationTest {
     @Autowired
     private BorrowingRepository borrowingRepository;
 
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     @BeforeEach
     void setUp() {
         // Clean up repository
+        refreshTokenRepository.deleteAll();
         borrowingRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -145,7 +151,96 @@ public class AuthControllerIntegrationTest {
         // Then
         response.andExpect(status().isOk())
                 .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.accessToken", notNullValue()))
+                .andExpect(jsonPath("$.refreshToken", notNullValue()))
                 .andExpect(jsonPath("$.username", is("existinguser")))
+                .andDo(print());
+    }
+
+    @Test
+    public void shouldRefreshAccessTokenWithValidRefreshToken() throws Exception {
+        // Given
+        LoginRequestDTO loginRequestDTO = new LoginRequestDTO();
+        loginRequestDTO.setUsername("existinguser");
+        loginRequestDTO.setPassword("password");
+
+        String loginResponse = mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequestDTO)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String refreshToken = objectMapper.readTree(loginResponse).get("refreshToken").asText();
+        RefreshTokenRequestDTO refreshTokenRequestDTO = RefreshTokenRequestDTO.builder()
+                .refreshToken(refreshToken)
+                .build();
+
+        // When
+        ResultActions response = mockMvc.perform(post("/auth/refresh-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(refreshTokenRequestDTO)));
+
+        // Then
+        response.andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.accessToken", notNullValue()))
+                .andExpect(jsonPath("$.refreshToken", is(refreshToken)))
+                .andExpect(jsonPath("$.username", is("existinguser")))
+                .andDo(print());
+    }
+
+    @Test
+    public void shouldRejectInvalidRefreshToken() throws Exception {
+        // Given
+        RefreshTokenRequestDTO refreshTokenRequestDTO = RefreshTokenRequestDTO.builder()
+                .refreshToken("invalid-refresh-token")
+                .build();
+
+        // When
+        ResultActions response = mockMvc.perform(post("/auth/refresh-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(refreshTokenRequestDTO)));
+
+        // Then
+        response.andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andDo(print());
+    }
+
+    @Test
+    public void shouldRevokeRefreshTokenOnLogout() throws Exception {
+        // Given
+        LoginRequestDTO loginRequestDTO = new LoginRequestDTO();
+        loginRequestDTO.setUsername("existinguser");
+        loginRequestDTO.setPassword("password");
+
+        String loginResponse = mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequestDTO)))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String refreshToken = objectMapper.readTree(loginResponse).get("refreshToken").asText();
+        RefreshTokenRequestDTO refreshTokenRequestDTO = RefreshTokenRequestDTO.builder()
+                .refreshToken(refreshToken)
+                .build();
+
+        // When
+        mockMvc.perform(post("/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(refreshTokenRequestDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andDo(print());
+
+        // Then
+        mockMvc.perform(post("/auth/refresh-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(refreshTokenRequestDTO)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)))
                 .andDo(print());
     }
 

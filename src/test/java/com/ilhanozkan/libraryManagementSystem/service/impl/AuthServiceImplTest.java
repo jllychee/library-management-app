@@ -1,12 +1,15 @@
 package com.ilhanozkan.libraryManagementSystem.service.impl;
 
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.LoginRequestDTO;
+import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RefreshTokenRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RegisterRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.response.auth.LoginResponseDTO;
+import com.ilhanozkan.libraryManagementSystem.model.entity.RefreshToken;
 import com.ilhanozkan.libraryManagementSystem.model.entity.User;
 import com.ilhanozkan.libraryManagementSystem.model.enums.UserRole;
 import com.ilhanozkan.libraryManagementSystem.repository.UserRepository;
 import com.ilhanozkan.libraryManagementSystem.security.JwtService;
+import com.ilhanozkan.libraryManagementSystem.service.RefreshTokenService;
 import org.apache.coyote.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +51,9 @@ class AuthServiceImplTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
 
     @Mock
     private Authentication authentication;
@@ -199,6 +205,11 @@ class AuthServiceImplTest {
         given(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).willReturn(authentication);
         given(authentication.getPrincipal()).willReturn(userDetails);
         given(jwtService.generateToken("testuser")).willReturn("jwt-token");
+        given(userRepository.findByUsername("testuser")).willReturn(user);
+        given(refreshTokenService.createRefreshToken(user)).willReturn(RefreshToken.builder()
+                .token("refresh-token")
+                .user(user)
+                .build());
 
         // Act
         ResponseEntity<?> response = authService.login(loginRequestDTO);
@@ -209,11 +220,62 @@ class AuthServiceImplTest {
         
         LoginResponseDTO responseDTO = (LoginResponseDTO) response.getBody();
         assertThat(responseDTO.getToken()).isEqualTo("jwt-token");
+        assertThat(responseDTO.getAccessToken()).isEqualTo("jwt-token");
+        assertThat(responseDTO.getRefreshToken()).isEqualTo("refresh-token");
         assertThat(responseDTO.getUsername()).isEqualTo("testuser");
         assertThat(responseDTO.getRole()).isEqualTo(UserRole.PATRON);
         
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtService).generateToken("testuser");
+        verify(refreshTokenService).createRefreshToken(user);
+    }
+
+    @Test
+    void shouldRefreshAccessTokenSuccessfully() {
+        // Arrange
+        RefreshTokenRequestDTO requestDTO = RefreshTokenRequestDTO.builder()
+                .refreshToken("refresh-token")
+                .build();
+        user.setUsername("testuser");
+        user.setRole(UserRole.PATRON);
+
+        given(refreshTokenService.validateRefreshToken("refresh-token")).willReturn(RefreshToken.builder()
+                .token("refresh-token")
+                .user(user)
+                .build());
+        given(jwtService.generateToken("testuser")).willReturn("new-jwt-token");
+
+        // Act
+        ResponseEntity<?> response = authService.refreshToken(requestDTO);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isInstanceOf(LoginResponseDTO.class);
+
+        LoginResponseDTO responseDTO = (LoginResponseDTO) response.getBody();
+        assertThat(responseDTO.getToken()).isEqualTo("new-jwt-token");
+        assertThat(responseDTO.getAccessToken()).isEqualTo("new-jwt-token");
+        assertThat(responseDTO.getRefreshToken()).isEqualTo("refresh-token");
+        assertThat(responseDTO.getUsername()).isEqualTo("testuser");
+        assertThat(responseDTO.getRole()).isEqualTo(UserRole.PATRON);
+
+        verify(refreshTokenService).validateRefreshToken("refresh-token");
+        verify(jwtService).generateToken("testuser");
+    }
+
+    @Test
+    void shouldRevokeRefreshTokenOnLogout() {
+        // Arrange
+        RefreshTokenRequestDTO requestDTO = RefreshTokenRequestDTO.builder()
+                .refreshToken("refresh-token")
+                .build();
+
+        // Act
+        ResponseEntity<?> response = authService.logout(requestDTO);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(refreshTokenService).revokeRefreshToken("refresh-token");
     }
 
     @Test
