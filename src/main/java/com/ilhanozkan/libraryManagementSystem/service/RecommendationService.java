@@ -1,10 +1,10 @@
 package com.ilhanozkan.libraryManagementSystem.service;
 
-import com.ilhanozkan.libraryManagementSystem.model.entity.Book;
+import com.ilhanozkan.libraryManagementSystem.model.dto.response.BookResponseDTO;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface RecommendationService {
-  List<Book> recommendBooks(UUID userId);
+  List<BookResponseDTO> recommendBooks(UUID userId);
 }

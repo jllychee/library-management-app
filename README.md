@@ -217,6 +217,9 @@ The application provides a RESTful API with the following main endpoints:
 - `GET /waitlists/mine`: List the authenticated patron's waitlist entries.
 - `DELETE /waitlists/{id}`: Remove one of the patron's own waitlist entries.
 
+### Recommendations
+- `GET /recommendations/user/{userId}`: Recommend up to five available books based on the user's borrowing history, preferred genres, and authors.
+
 For a complete API reference, access the Swagger documentation at: http://localhost:8080/api/v1/swagger-ui/index.html
 
 ## Additional Information
