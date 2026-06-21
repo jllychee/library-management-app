@@ -1,6 +1,7 @@
 package com.ilhanozkan.libraryManagementSystem.repository;
 
 import com.ilhanozkan.libraryManagementSystem.model.entity.Book;
+import com.ilhanozkan.libraryManagementSystem.model.enums.BookGenre;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,7 +20,10 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
   List<Book> searchBooks(@Param("title") String title,
                          @Param("author") String author,
                          @Param("isbn") String isbn,
-                         @Param("genre") String genre, Pageable pageable);
-  
+                         @Param("genre") String genre,
+                         Pageable pageable);
+
   Book findByIsbn(String isbn);
+
+  List<Book> findByGenreInOrAuthorIn(List<BookGenre> genres, List<String> authors);
 }
