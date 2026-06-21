@@ -20,5 +20,10 @@ public interface BookService {
   public void updateBookQuantity(UUID id, int change);
   public BookResponseDTO updateBookAvailableQuantity(UUID id, BookQuantityUpdateDTO quantityUpdateDTO);
   public void deleteBook(UUID id);
-  public void publishBookAvailabilityEvent(Book book);
+  /**
+   * Broadcasts the reactive book-availability SSE event and, when available quantity
+   * transitions from {@code previousAvailableQuantity <= 0} to {@code > 0}, also publishes
+   * a {@code BookBecameAvailableEvent} so waitlisted patrons get emailed.
+   */
+  public void publishBookAvailabilityEvent(Book book, int previousAvailableQuantity);
 }

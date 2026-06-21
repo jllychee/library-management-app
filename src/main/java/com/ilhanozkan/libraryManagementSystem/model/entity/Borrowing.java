@@ -46,6 +46,12 @@ public class Borrowing {
   @Column(nullable = false)
   private LocalDateTime updatedAt;
 
+  // Timestamp of the last overdue-warning email sent for this borrowing.
+  // Nullable; when null the borrowing has never been notified. Used by the
+  // OverdueNotificationScheduler to avoid re-emailing the same overdue book every run.
+  @Column
+  private LocalDateTime lastOverdueNotifiedAt;
+
   // Expiration duration (days)
   private static final int expirationDuration = 14;
 

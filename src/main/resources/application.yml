@@ -25,6 +25,19 @@ spring:
     open-in-view: true
   application:
     name: library-management-app
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME:}
+    password: ${GMAIL_APP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 logging:
   file:
@@ -48,3 +61,13 @@ jwt:
 library:
   fines:
     daily-rate: 1.00
+
+# Email / Notification Configuration
+# Set GMAIL_USERNAME and GMAIL_APP_PASSWORD in the environment to enable real delivery.
+# When unset, the app still boots; SMTP failures are caught and logged, never fatal.
+notification:
+  from-address: ${GMAIL_USERNAME:no-reply@library.local}
+  # Days to wait before re-notifying the same overdue borrowing
+  overdue-remind-days: 3
+  # Overdue scan runs daily at 08:00 server-local time
+  overdue-cron: "0 0 8 * * *"

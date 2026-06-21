@@ -1,6 +1,7 @@
 package com.ilhanozkan.libraryManagementSystem.service.impl;
 
 import com.ilhanozkan.libraryManagementSystem.common.apiResponse.ApiResponseModel;
+import com.ilhanozkan.libraryManagementSystem.model.dto.event.UserRegisteredEvent;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.LoginRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RefreshTokenRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RegisterRequestDTO;
@@ -15,6 +16,7 @@ import com.ilhanozkan.libraryManagementSystem.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
   private final RefreshTokenService refreshTokenService;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -69,6 +72,11 @@ public class AuthServiceImpl implements AuthService {
 
     user = userRepository.save(user);
     log.info("User registered successfully with ID: {}", user.getId());
+
+    // Fire the registration event AFTER_COMMIT so a downstream rollback doesn't produce
+    // a spurious welcome email. Handled async by RegistrationNotificationListener.
+    eventPublisher.publishEvent(new UserRegisteredEvent(
+        user.getId(), user.getUsername(), user.getEmail(), user.getName(), user.getSurname()));
 
     return "User " + user.getUsername() + " registered successfully";
   }

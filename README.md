@@ -212,6 +212,11 @@ The application provides a RESTful API with the following main endpoints:
 - `GET /fines/my`: Get authenticated user's fines
 - `GET /fines`: Get all fines (LIBRARIAN role)
 
+### Waitlist (availability notifications)
+- `POST /waitlists`: Join a book's waitlist (authenticated); body `{ "bookId": "<uuid>" }`. The patron is emailed once when the book's available quantity transitions from 0 to >0.
+- `GET /waitlists/mine`: List the authenticated patron's waitlist entries.
+- `DELETE /waitlists/{id}`: Remove one of the patron's own waitlist entries.
+
 For a complete API reference, access the Swagger documentation at: http://localhost:8080/api/v1/swagger-ui/index.html
 
 ## Additional Information
@@ -261,6 +266,29 @@ Fine records are stored once per borrowing record and updated on later runs, so 
 Click to go to [Online Postman Collection Link](https://www.postman.com/flight-geoscientist-10994860/library-management-system/collection/20492318-ec6da3a3-fb40-4818-850e-d575b8a63d32/?action=share&creator=20492318)
 
 A Postman collection is included in the repository (`library_management_system_postman_collection.json`) that contains sample requests for testing the API endpoints.
+
+## Email Notifications
+
+The system sends asynchronous, best-effort email alerts for critical events. Notifications are decoupled from the request path via Spring application events and run on a dedicated async executor (`@EnableAsync`); an overdue scan runs daily on a schedule (`@EnableScheduling`).
+
+| Event | Trigger | Recipient |
+|---|---|---|
+| Registration confirmation | `POST /auth/register` commits | The new user |
+| Book became available | A book's available quantity goes from 0 to >0 (return, restock, quantity update) | Every patron on that book's waitlist (`POST /waitlists`) |
+| Overdue reminder | Daily scheduled scan (default 08:00, configurable via `notification.overdue-cron`) | Each patron with overdue books (one digest per user, deduplicated via `borrowings.last_overdue_notified_at`) |
+
+### Configuring SMTP
+
+Emails are sent via Gmail SMTP. Set the following environment variables before starting the app:
+
+```bash
+export GMAIL_USERNAME="you@gmail.com"
+export GMAIL_APP_PASSWORD="your-16-char-app-password"
+```
+
+(Gmail requires an **App Password**, not your account password — see [Google Account → App passwords](https://myaccount.google.com/apppasswords).)
+
+When these variables are **not** set, the application still boots and all other functionality works normally; outbound mail simply fails soft (logged at `WARN`, never propagated to callers). The cron schedule and remind interval are tunable via `notification.overdue-cron` and `notification.overdue-remind-days` in `application.yml`.
 
 ## TODOs / Future Improvements
 

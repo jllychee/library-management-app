@@ -37,16 +37,24 @@ public class OpenApiConfig {
         .description("This is the library Management System REST API")
         .license(license);
 
-    SecurityScheme securityScheme = new SecurityScheme()
+    SecurityScheme bearerScheme = new SecurityScheme()
         .type(SecurityScheme.Type.HTTP)
         .scheme("bearer")
         .bearerFormat("JWT");
 
+    // HTTP Basic scheme so Swagger's Authorize dialog accepts username/password
+    // directly (e.g. librarian/password) instead of forcing token copy-paste.
+    SecurityScheme basicScheme = new SecurityScheme()
+        .type(SecurityScheme.Type.HTTP)
+        .scheme("basic");
+
     return new OpenAPI()
         .info(info)
         .servers(List.of(server))
-        .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+        // basicAuth is the default lock on each endpoint; bearerAuth stays available.
+        .addSecurityItem(new SecurityRequirement().addList("basicAuth"))
         .components(new Components()
-            .addSecuritySchemes("bearerAuth", securityScheme));
+            .addSecuritySchemes("bearerAuth", bearerScheme)
+            .addSecuritySchemes("basicAuth", basicScheme));
   }
 }

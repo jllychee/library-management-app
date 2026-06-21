@@ -3,6 +3,7 @@ package com.ilhanozkan.libraryManagementSystem.service.impl;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.LoginRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RefreshTokenRequestDTO;
 import com.ilhanozkan.libraryManagementSystem.model.dto.request.auth.RegisterRequestDTO;
+import com.ilhanozkan.libraryManagementSystem.model.dto.event.UserRegisteredEvent;
 import com.ilhanozkan.libraryManagementSystem.model.dto.response.auth.LoginResponseDTO;
 import com.ilhanozkan.libraryManagementSystem.model.entity.RefreshToken;
 import com.ilhanozkan.libraryManagementSystem.model.entity.User;
@@ -18,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -54,6 +56,9 @@ class AuthServiceImplTest {
 
     @Mock
     private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private Authentication authentication;
@@ -143,6 +148,7 @@ class AuthServiceImplTest {
         verify(userRepository).existsByEmail("test.user@example.com");
         verify(passwordEncoder).encode("Password123");
         verify(userRepository).save(any(User.class));
+        verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
     }
 
     @Test
