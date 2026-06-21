@@ -100,7 +100,7 @@ This Library Management System is a comprehensive Spring Boot application design
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ilhanozkan/library-management-app.git
+   git clone https://github.com/jllychee/library-management-app.git
    cd library-management-app
    ```
 
