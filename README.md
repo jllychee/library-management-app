@@ -27,18 +27,31 @@ This Library Management System is a comprehensive Spring Boot application design
   - Overdue book management
   - Borrowing history for users
 
-- **Fine Management**:
+- **Automated Overdue Fine System**:
   - Automatic daily fine calculation for overdue, unreturned books
   - Fine records linked to users, books, and borrowing records
   - User fine history and librarian-wide fine lookup
+
+- **Email Notification Service**:
+  - Registration confirmation emails
+  - Overdue reminder emails
+  - Book availability emails for waitlisted books
+  - Asynchronous delivery that does not interrupt the main system flow
+
+- **Borrowing History-Based Book Recommendation**:
+  - Recommendations based on previously borrowed genres and authors
+  - Excludes previously borrowed and unavailable books
+  - Returns up to five relevant books
 
 - **Reporting**:
   - Overdue books reports in text and PDF formats
   - Book availability tracking
   - User borrowing history
 
-- **Security**:
-  - JWT-based authentication
+- **Seamless Authentication Flow**:
+  - JWT access-token authentication
+  - Refresh tokens for obtaining new access tokens without logging in again
+  - Refresh-token revocation during logout
   - Role-based access control
   - API endpoint protection
 
@@ -168,8 +181,8 @@ The application provides a RESTful API with the following main endpoints:
 ### Authentication
 - `POST /auth/register`: Register a new user
 - `POST /auth/login`: Authenticate and get JWT access and refresh tokens
-- `POST /auth/refresh-token`: Get a new JWT access token with a valid refresh token
-- `POST /auth/logout`: Revoke a refresh token
+- `POST /auth/refresh-token`: Get a new access token using a valid refresh token
+- `POST /auth/logout`: Revoke the refresh token during logout
 
 ### Book Management
 - `GET /books`: Get all books with pagination
@@ -209,16 +222,16 @@ The application provides a RESTful API with the following main endpoints:
 - `GET /borrowings/overdue-pdf-report`: Generate PDF report of overdue books (LIBRARIAN role)
 
 ### Fine Operations
-- `GET /fines/my`: Get authenticated user's fines
-- `GET /fines`: Get all fines (LIBRARIAN role)
+- `GET /fines`: Librarian views all fine records
+- `GET /fines/my`: Authenticated patron views their own fine records
 
-### Waitlist (availability notifications)
-- `POST /waitlists`: Join a book's waitlist (authenticated); body `{ "bookId": "<uuid>" }`. The patron is emailed once when the book's available quantity transitions from 0 to >0.
-- `GET /waitlists/mine`: List the authenticated patron's waitlist entries.
-- `DELETE /waitlists/{id}`: Remove one of the patron's own waitlist entries.
+### Waitlist Operations
+- `POST /waitlists`: Authenticated patron joins a book waitlist
+- `GET /waitlists/mine`: Authenticated patron views their own waitlist entries
+- `DELETE /waitlists/{id}`: Remove the authenticated patron's own waitlist entry
 
 ### Recommendations
-- `GET /recommendations/user/{userId}`: Recommend up to five available books based on the user's borrowing history, preferred genres, and authors.
+- `GET /recommendations/user/{userId}`: Get book recommendations based on borrowing history
 
 For a complete API reference, access the Swagger documentation at: http://localhost:8080/api/v1/swagger-ui/index.html
 
@@ -232,21 +245,21 @@ The application initializes with the following default users:
 
 ### JWT Authentication
 
-All protected endpoints require a JWT token passed in the Authorization header:
+Login through `/auth/login` returns `token`, `accessToken`, `refreshToken`, `username`, and `role`. The `token` field is kept as an alias of `accessToken` for compatibility.
+
+Use `accessToken` for protected API requests by passing it in the Authorization header:
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
-The access token is obtained by logging in via the `/auth/login` endpoint. The login response includes `token`, `accessToken`, `refreshToken`, `username`, and `role`; `token` is kept as an alias of `accessToken` for compatibility.
-
-When an access token expires, call `/auth/refresh-token` with the refresh token:
+When the access token expires, send `refreshToken` to `/auth/refresh-token` to obtain a new access token:
 ```json
 {
   "refreshToken": "refresh-token-value"
 }
 ```
 
-The refresh endpoint returns a new access token and the same refresh token. To log out, call `/auth/logout` with the same request body. A revoked refresh token cannot be used again. Refresh tokens are stored server-side and are not valid as `Authorization: Bearer` tokens for protected APIs.
+To log out, send the refresh token to `/auth/logout`. Logout revokes the refresh token, and a revoked token cannot be reused. Refresh tokens are stored server-side and cannot be used as bearer tokens for protected APIs.
 
 ### Data Initialization
 
@@ -272,7 +285,7 @@ A Postman collection is included in the repository (`library_management_system_p
 
 ## Email Notifications
 
-The system sends asynchronous, best-effort email alerts for critical events. Notifications are decoupled from the request path via Spring application events and run on a dedicated async executor (`@EnableAsync`); an overdue scan runs daily on a schedule (`@EnableScheduling`).
+The system sends registration confirmation, overdue reminder, and waitlisted-book availability emails. Email sending is asynchronous and decoupled from the main request flow. Delivery failures are logged without stopping registration, borrowing, returning, or other system operations.
 
 | Event | Trigger | Recipient |
 |---|---|---|
@@ -296,11 +309,6 @@ When these variables are **not** set, the application still boots and all other 
 ## TODOs / Future Improvements
 
 - Implement a front-end application using React
-- Implement email notifications for:
-  - Overdue books
-  - Book availability alerts
-  - Account registration
-- Implement book recommendations based on borrowing history
 - Add comprehensive monitoring
 - Implement caching for frequently accessed data
 - Add support for digital books and e-lending
