@@ -47,7 +47,7 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(
                 auth -> {
                     // Public endpoints
-                    auth.requestMatchers("/auth/**").permitAll()
+                    auth.requestMatchers("/auth/login", "/auth/register", "/auth/refresh-token", "/auth/logout").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     
                     if (isTestProfile) {
