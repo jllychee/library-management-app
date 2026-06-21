@@ -42,6 +42,7 @@ public class WebSecurityConfig {
         http
             .csrf().disable()
             .cors(Customizer.withDefaults())
+            .httpBasic(Customizer.withDefaults()) // allows Basic auth (e.g. Swagger UI Authorize)
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeHttpRequests(
@@ -50,19 +51,21 @@ public class WebSecurityConfig {
                     auth.requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     
-                    if (isTestProfile) {
-                        // In test profile, make all /api endpoints accessible for easier testing
-                        auth.requestMatchers("/books/**").permitAll()
-                            .requestMatchers("/borrowings/**").permitAll()
-                            .requestMatchers("/users/**").permitAll();
-                    } else {
-                        // In non-test profiles, apply proper security
-                        auth.requestMatchers("/users/**").hasAuthority("ROLE_LIBRARIAN")
-                            .requestMatchers("/books/*/borrow").authenticated()
-                            .requestMatchers("/books/*/return").authenticated()
-                            .requestMatchers("/books/**").permitAll() // Allow book search/view to all
-                            .requestMatchers("/borrowings/**").authenticated();
-                    }
+                     if (isTestProfile) {
+                         // In test profile, make all /api endpoints accessible for easier testing
+                         auth.requestMatchers("/books/**").permitAll()
+                             .requestMatchers("/borrowings/**").permitAll()
+                             .requestMatchers("/users/**").permitAll()
+                             .requestMatchers("/waitlists/**").permitAll();
+                     } else {
+                         // In non-test profiles, apply proper security
+                         auth.requestMatchers("/users/**").hasAuthority("ROLE_LIBRARIAN")
+                             .requestMatchers("/books/*/borrow").authenticated()
+                             .requestMatchers("/books/*/return").authenticated()
+                             .requestMatchers("/books/**").permitAll() // Allow book search/view to all
+                             .requestMatchers("/borrowings/**").authenticated()
+                             .requestMatchers("/waitlists/**").authenticated();
+                     }
                     
                     auth.anyRequest().authenticated();
                 }

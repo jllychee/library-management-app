@@ -11,6 +11,7 @@ import com.ilhanozkan.libraryManagementSystem.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,6 +29,7 @@ public class AuthServiceImpl implements AuthService {
   private final UserRepository userRepository;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -64,6 +66,11 @@ public class AuthServiceImpl implements AuthService {
 
     user = userRepository.save(user);
     log.info("User registered successfully with ID: {}", user.getId());
+
+    // Fire the registration event AFTER_COMMIT so a downstream rollback doesn't produce
+    // a spurious welcome email. Handled async by RegistrationNotificationListener.
+    eventPublisher.publishEvent(new com.ilhanozkan.libraryManagementSystem.model.dto.event.UserRegisteredEvent(
+        user.getId(), user.getUsername(), user.getEmail(), user.getName(), user.getSurname()));
 
     return "User " + user.getUsername() + " registered successfully";
   }

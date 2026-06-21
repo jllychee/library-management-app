@@ -43,3 +43,27 @@ logging:
 jwt:
   secret: OyF0epYib3QdHHfUc/PG6wjnkGuWZVVnDWcmxbL5tccsJ/xglg6fMWpr222kTWsc
   expiration: 86400000  # 24 hours in milliseconds
+
+# Email / Notification Configuration
+# Set GMAIL_USERNAME and GMAIL_APP_PASSWORD in the environment to enable real delivery.
+# When unset, the app still boots; SMTP failures are caught and logged, never fatal.
+spring.mail:
+  host: smtp.gmail.com
+  port: 587
+  username: ${GMAIL_USERNAME:}
+  password: ${GMAIL_APP_PASSWORD:}
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls.enable: true
+        connectiontimeout: 5000
+        timeout: 5000
+        writetimeout: 5000
+
+notification:
+  from-address: ${GMAIL_USERNAME:no-reply@library.local}
+  # Days to wait before re-notifying the same overdue borrowing
+  overdue-remind-days: 3
+  # Overdue scan runs daily at 08:00 server-local time
+  overdue-cron: "0 0 8 * * *"

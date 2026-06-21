@@ -133,8 +133,9 @@ public class BorrowingServiceImpl implements BorrowingService {
 
       Borrowing savedBorrowing = borrowingRepository.save(borrowing);
 
-      // Stream book availability event after the direct update
-      bookService.publishBookAvailabilityEvent(book);
+      // Stream book availability event after the direct update.
+      // previous = current + 1 (the value before decrement); a decrease can never be a 0->>0 transition.
+      bookService.publishBookAvailabilityEvent(book, book.getAvailableQuantity() + 1);
 
       log.info("Borrowing created successfully with ID: {}", savedBorrowing.getId());
       return mapper.toBorrowingResponseDTO(savedBorrowing);
@@ -171,13 +172,15 @@ public class BorrowingServiceImpl implements BorrowingService {
       
       // Update the book's available quantity directly
       Book book = borrowing.getBook();
+      int previousAvailableQuantity = book.getAvailableQuantity();
       book.setAvailableQuantity(book.getAvailableQuantity() + 1);
       bookRepository.save(book);
 
       Borrowing savedBorrowing = borrowingRepository.save(borrowing);
 
-      // Stream book availability event
-      bookService.publishBookAvailabilityEvent(borrowing.getBook());
+      // Stream book availability event. previous = the pre-increment value, so a
+      // return that bumps the book from 0 -> 1 correctly triggers waitlist notifications.
+      bookService.publishBookAvailabilityEvent(borrowing.getBook(), previousAvailableQuantity);
 
       log.info("Book returned successfully for borrowing ID: {}", id);
       return mapper.toBorrowingResponseDTO(savedBorrowing);
@@ -197,11 +200,12 @@ public class BorrowingServiceImpl implements BorrowingService {
                 borrowing.getBook().getId());
       // Update the book's available quantity directly
       Book book = borrowing.getBook();
+      int previousAvailableQuantity = book.getAvailableQuantity();
       book.setAvailableQuantity(book.getAvailableQuantity() + 1);
       bookRepository.save(book);
       
       // Also publish the event
-      bookService.publishBookAvailabilityEvent(book);
+      bookService.publishBookAvailabilityEvent(book, previousAvailableQuantity);
     }
 
     borrowingRepository.delete(borrowing);

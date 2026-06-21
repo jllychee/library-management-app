@@ -185,7 +185,7 @@ public class BorrowingServiceImplTest {
         given(bookRepository.findById(bookId)).willReturn(Optional.of(testBook));
         given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
         given(borrowingRepository.save(any(Borrowing.class))).willReturn(testBorrowing);
-        doNothing().when(bookService).publishBookAvailabilityEvent(any(Book.class));
+        doNothing().when(bookService).publishBookAvailabilityEvent(any(Book.class), anyInt());
 
         // Act
         BorrowingResponseDTO result = borrowingService.createBorrowing(borrowingRequestDTO);
@@ -195,7 +195,7 @@ public class BorrowingServiceImplTest {
         verify(bookRepository, times(1)).findById(bookId);
         verify(userRepository, times(1)).findById(userId);
         verify(borrowingRepository, times(1)).save(any(Borrowing.class));
-        verify(bookService, times(1)).publishBookAvailabilityEvent(any(Book.class));
+        verify(bookService, times(1)).publishBookAvailabilityEvent(any(Book.class), anyInt());
     }
 
     @Test
@@ -262,7 +262,7 @@ public class BorrowingServiceImplTest {
         given(authentication.getPrincipal()).willReturn(userPrincipal);
         
         given(borrowingRepository.save(any(Borrowing.class))).willReturn(testBorrowing);
-        doNothing().when(bookService).publishBookAvailabilityEvent(any(Book.class));
+        doNothing().when(bookService).publishBookAvailabilityEvent(any(Book.class), anyInt());
 
         // Act
         BorrowingResponseDTO result = borrowingService.returnBook(borrowingId);
@@ -274,14 +274,14 @@ public class BorrowingServiceImplTest {
         verify(borrowingRepository, times(1)).findById(borrowingId);
         verify(borrowingRepository, times(1)).save(any(Borrowing.class));
         verify(bookRepository, times(1)).save(any(Book.class));
-        verify(bookService, times(1)).publishBookAvailabilityEvent(any(Book.class));
+        verify(bookService, times(1)).publishBookAvailabilityEvent(any(Book.class), anyInt());
     }
 
     @Test
     void shouldDeleteBorrowing() {
         // Arrange
         given(borrowingRepository.findById(borrowingId)).willReturn(Optional.of(testBorrowing));
-        doNothing().when(bookService).publishBookAvailabilityEvent(any(Book.class));
+        doNothing().when(bookService).publishBookAvailabilityEvent(any(Book.class), anyInt());
         doNothing().when(borrowingRepository).delete(any(Borrowing.class));
 
         // Act
@@ -292,7 +292,7 @@ public class BorrowingServiceImplTest {
         assertThat(testBook.getAvailableQuantity()).isEqualTo(11); // Should be incremented from 10 to 11
         verify(borrowingRepository, times(1)).findById(borrowingId);
         verify(bookRepository, times(1)).save(any(Book.class));
-        verify(bookService, times(1)).publishBookAvailabilityEvent(any(Book.class));
+        verify(bookService, times(1)).publishBookAvailabilityEvent(any(Book.class), anyInt());
         verify(borrowingRepository, times(1)).delete(any(Borrowing.class));
     }
 
